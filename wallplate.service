@@ -1,0 +1,10 @@
+[Unit]
+Description=Wallplate Service
+After=sockets.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/piproj/wallplate/wallplate.py -d -l
+User = root
+
+[Install]

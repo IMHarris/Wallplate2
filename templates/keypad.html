@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{{ title }}</title>
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+		<link rel="stylesheet" href="http://192.168.1.8/jquery.numpad.css">
+		<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Open+Sans:300,400,700">
+		<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+		<script src="http://192.168.1.8/jquery.numpad.js"></script>
+		<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+		<script type="text/javascript">
+			var loc = window.location.pathname;
+			//window.alert(loc);
+			// Set NumPad defaults for jQuery mobile. 
+			// These defaults will be applied to all NumPads within this document!
+			$.fn.numpad.defaults.gridTpl = '<table class="ui-bar-a"></table>';
+			$.fn.numpad.defaults.backgroundTpl = '<div class="ui-popup-screen ui-overlay-a"></div>';
+			$.fn.numpad.defaults.displayTpl = '<input data-theme="b" type="text" />';
+			$.fn.numpad.defaults.buttonNumberTpl =  '<a data-role="button" data-theme="b"></a>';
+			$.fn.numpad.defaults.buttonFunctionTpl = '<a data-role="button" data-theme="a"></a>';
+			$.fn.numpad.defaults.onKeypadCreate = function(){$(this).enhanceWithin();};
+			
+			// Instantiate NumPad once the page is ready to be shown
+			$(document).on('pageshow', function(){
+				$('#text-basic').numpad();
+				$('#password').numpad({
+					displayTpl: '<input data-theme="b" type="password" />'		
+				});
+				$('#numpadButton-btn').numpad({
+					target: $('#numpadButton'),
+				});
+				$('#numpad4div').numpad();
+				$('#numpad4column .qtyInput').numpad();
+			});
+		
+			function sendData(data) {
+				  var XHR = new XMLHttpRequest();
+				  var urlEncodedData = "";
+				  var urlEncodedDataPairs = [];
+				  var name;
+
+				  // We turn the data object into an array of URL encoded key value pairs.
+				  for(name in data) {
+				    urlEncodedDataPairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(data[name]));
+				  }
+
+				  // We combine the pairs into a single string and replace all encoded spaces to 
+				  // the plus character to match the behaviour of the web browser form submit.
+				  urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
+
+				  // We define what will happen if the data is successfully sent
+				  XHR.addEventListener('load', function(event) {
+				    alert('Yeah! Data sent and response loaded.');
+				  });
+
+				  // We define what will happen in case of error
+				  XHR.addEventListener('error', function(event) {
+				    alert('Oups! Something goes wrong.');
+				  });
+
+				  // We setup our request
+				  XHR.open('POST', 'http://ucommbieber.unl.edu/CORS/cors.php');
+
+				  // We add the required HTTP header to handle a form data POST request
+				  XHR.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				  XHR.setRequestHeader('Content-Length', urlEncodedData.length);
+
+				  // And finally, We send our data.
+				  XHR.send(urlEncodedData);
+				}
+			
+			
+			
+			</script>
+		<style type="text/css">
+			.controlgroup-textinput{
+				padding-top: .22em;
+				padding-bottom: .22em;
+			}
+		</style>
+	</head>
+	<body>
+	<div data-role="page" class="jqm-demos" data-quicklinks="true">
+
+		<div data-role="header" class="jqm-header">
+			<h2>Garage Door</h2>
+		</div><!-- /header -->
+
+    <div role="main" class="ui-content jqm-content">
+    	<div class="ui-body ui-body-a ui-corner-all">
+          <div class="jquery-script-ads" align="center"><script type="text/javascript"><!--
+
+</script>
+</div>
+      	
+		<h2>Enter Code</h2>
+        
+
+        <div>
+			<label for="numpadButton"> </label>
+			<div data-role="controlgroup" data-type="horizontal">
+				<input type="hidden" id="numpadButton" data-wrapper-class="controlgroup-textinput ui-btn" value="">
+				<button id="numpadButton-btn" class="ui-btn ui-icon-grid ui-btn-icon-notext ui-alt-icon ui-nodisc-icon">&nbsp;</button>
+			</div>
+        </div><!-- /demo-html -->
+		
+	</div>
+
+
+</div></div><!-- /page -->
+
+</body>
+</html>
