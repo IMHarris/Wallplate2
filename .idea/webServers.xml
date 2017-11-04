@@ -2,8 +2,16 @@
 <project version="4">
   <component name="WebServers">
     <option name="servers">
-      <webServer id="ssh://pi@192.168.1.8:22/usr/bin/python3" name="ssh://pi@192.168.1.8:22/usr/bin/python3">
-        <fileTransfer host="192.168.1.8" port="22" accessType="SFTP">
+      <webServer id="ssh://pi@192.168.1.8:22/usr/bin/python3" name="ssh://pi@192.168.1.7:22/usr/bin/python3">
+        <fileTransfer host="192.168.1.7" port="22" accessType="SFTP">
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+      <webServer id="f2cdda9b-56cb-410f-a366-07924c0c0392" name="Production" url="http://192.168.1.7">
+        <fileTransfer host="192.168.1.7" port="22" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
           <option name="port" value="22" />
         </fileTransfer>
       </webServer>
