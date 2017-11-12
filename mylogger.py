@@ -49,6 +49,9 @@ class mylogger(object):
                         # Only log if there is a message (not just a new line)
                         if message.rstrip() != "":
                                 self.logger.log(self.level, message.rstrip())
+
+                def flush(self):
+                    pass
         
         # Replace stdout with logging to file at INFO level
         sys.stdout = MyLogger(logger, logging.INFO)
