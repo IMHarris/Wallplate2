@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-yy
 import RPi.GPIO as GPIO
 import time
 import threading
