@@ -43,13 +43,13 @@ if isdaemon:
 import plivosms
 
 
-def sendSMS(textmessage):
+def sendSMS(textmessage,phone):
     try:
         p = plivosms.RestAPI()
 
         params = {
             'src': '+12242284700',  # Sender's phone number with country code
-            'dst': '+18479519366',  # Receiver's phone Number with country code
+            'dst': phone,  # Receiver's phone Number with country code
             'text': textmessage,  # Your SMS Text Message - English
             #   'url' : "http://example.com/report/", # The URL to which with the status of the message is sent
             'method': 'POST'  # The method used to call the url
@@ -99,9 +99,6 @@ class App:
             def run(self):
 
                 try:
-                #
-
-                    self.__israndom = True
                     print ('Active thread count ' + str(threading.active_count()))
 
                     self.__isblinking = True
@@ -110,7 +107,6 @@ class App:
                     timestart = time.time()
                     timeend = timestart + self.__duration - self.__delay
 
-                #
                     if self.__israndom:
                         i = 0
                         #self.__ledpwm.start(self.__brightness)
@@ -141,6 +137,9 @@ class App:
                             GPIO.output(self._pin, not self.__iscathode)
                             #self.__ledpwm.ChangeDutyCycle(0)
                             self.__stopevent.wait(self.__offtime * rnd)
+                            # if self.__stopevent.isSet():
+                            #     print('stop event set')
+                            #print str(self.__stopevent.isSet())
 
                     elif self.__offtime > 0:
 
@@ -205,6 +204,7 @@ class App:
 
             def stopblink(self):
                 self.__stopevent.set()
+                print("forced blink thread stop " + self.__threadID)
                 # print('Timestamp: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
 
             @property
@@ -235,7 +235,8 @@ class App:
         def blink(self, program, delay1=0, delay2=0, duration=0, delay=0, brightness=100, israndom=False):
             #Todo Create flag to kill prior thread
 
-            #self.join()
+            #First kill any running instructions on this LED
+            self.stopblink()
 
             if (israndom):
                 randomarray = [None] * 100
@@ -265,7 +266,7 @@ class App:
         @property
         def isblinking(self):
             return self._isblinking
-            print ('Blinking ', self._isblinking)
+            #print ('Blinking ', self._isblinking)
 
         @property
         def pin(self):
@@ -358,7 +359,7 @@ class App:
                         self.ActivateGarage()
                     elif commanddict["numpad"] == '1000':
                         sendSMS("Test Message. Hello! " + 'Timestamp: {:%Y-%m-%d %H:%M:%S}'.format(
-                            datetime.datetime.now()) + 'GMT')
+                            datetime.datetime.now()) + 'GMT','18479519366')
 
                 elif "LEDs" in commanddict:
                     # initialize variables
@@ -429,15 +430,6 @@ class App:
             i += 1
         print ('Switch program complete')
 
-        fmt = "%Y-%m-%d %H:%M:%S %Z%z"
-
-        # Current time in UTC
-        now_utc = datetime.datetime.now(timezone('UTC'))
-        print (now_utc.strftime(fmt) + ' UTC')
-
-        # Convert to US/Pacific time zone
-        now_pacific = now_utc.astimezone(timezone('US/Central'))
-        print (now_pacific.strftime(fmt) + ' CST')
 
     def LEDOff(self, ledindex):
         if self.__LEDs[ledindex].isblinking:
@@ -543,18 +535,42 @@ def sigterm_handler(_signo, _stack_frame):
     app.cleanup()
     sys.exit(0)
 
-
 signal.signal(signal.SIGTERM, sigterm_handler)
 
+def setgarageindicator(level):
+    if level == "low":
+        app.LEDBlink(2, 0.25, 0, 0, 0, 100, False)
+    elif level == "high":
+        app.LEDBlink(2, 0.25, 0.25, 0, 0, 100, False)
+    else:
+        app.KillLED(2)
+        app.LEDBlink(7,0.25,0.25,2.35,0,100,False)
+
 try:
+
+    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
+
+    print('Program initiated at {:%Y-%m-%d %H:%M:%S} GMT'.format(datetime.datetime.now()))
+
+    #Blink lights to indicate program has booted and is about to begin main loop
+    app.LEDBlink(2,0.5,1,4.5,0,100,False)
+    app.LEDBlink(3, 0.5, 1, 4.5, 0.5, 100, False)
+    app.LEDBlink(4, 0.5, 1, 4.5, 1, 100, False)
+    app.LEDBlink(7, 1, 1, 5.5, 4.5, 100, False)
+
     reachedend = False
-    mainlastoff = True
     if app.GarageOpen():
         print('Garage is open')
     else:
         print('Garage is closed')
 
-    garagelastopen = False
+    if app.SwitchValue():
+        mainlastoff = False
+    else:
+        mainlastoff = True
+
+    garagemessagesent = False
+    garageopentime = None
     stringresponse = ''
 
     # Kick off thread to listen to port
@@ -568,27 +584,52 @@ try:
         # Loop listens for connections on the port and for events from the switches
 
         # Check in on status of main switch
-        if app.SwitchValue() == False and mainlastoff:
-            print ('Main swtich activated.')
-            app.RunSwitchProgram()
-            mainlastoff = False
-
-        if app.SwitchValue() == True and not mainlastoff:
+        if app.SwitchValue() and mainlastoff:
             # Run actions for switch off
+            print ('Main swtich activated.')
+            mainlastoff = False
+            app.RunSwitchProgram()
+
+        if not app.SwitchValue() and not mainlastoff:
             print('Main switch deactivated')
             app.KillAll()
             mainlastoff = True
 
-        if app.GarageOpen() == True and not garagelastopen:
-            print ('Garage opened')
-            app.LEDBlink(0, 0.15, 0, 0, 0, 100, False)
-            garagelastopen = True
+        # Determine if it is late
+        # Current time in UTC
+        now_utc = datetime.datetime.now(timezone('UTC'))
 
-        if app.GarageOpen() == False and garagelastopen:
-            # Run actions for switch off
-            print('Garage closed')
-            app.KillLED(0)
-            garagelastopen = False
+        # Convert to US/Central time zone
+        now_central = now_utc.astimezone(timezone('US/Central'))
+        if now_central.hour > 22 or now_central.hour < 6:
+            itslate = True
+        else:
+            itslate = False
+
+        if app.GarageOpen() == True:
+
+            if garageopentime is None:
+                #The garage just opened
+                setgarageindicator("low")
+                garageopentime = datetime.datetime.now()
+                #print ('Garage opened')
+                print('Garage opened at {:%I:%M:%S} CST'.format(now_central))
+
+            else:
+                #determine how long the garage has been open
+                garageopendelta = datetime.datetime.now() - garageopentime
+                if not garagemessagesent:
+                    if itslate and garageopendelta.total_seconds() > 120:
+                        setgarageindicator('high')
+                        sendSMS('It''s {:%I:%M} and the garage is open!'.format(now_central),'18479519366<18476519366')
+                        garagemessagesent = True
+
+        else:
+            if garageopentime is not None:
+                #Garage was just closed
+                garageopentime = None
+                garagemessagesent = False
+                setgarageindicator('off')
 
         # Check in on thread to see if a client has connected
         if portlistenthread1.isclientconnected:
