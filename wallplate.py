@@ -9,6 +9,7 @@ import os
 import requests
 import random
 import signal
+import darksky
 from pytz import timezone
 # import getopt
 
@@ -37,7 +38,7 @@ print(sys.version_info)
 
 if isdaemon:
     print("Wallplate launched as daemon. Will initiate 10-second delay to allow Apache to load.")
-    time.sleep(1)
+    time.sleep(10)
 
 # Set up method to send text messages
 import plivosms
@@ -508,7 +509,6 @@ class ListenThread(threading.Thread):
     def getaddress(self):
         return self.__client_address
 
-
 # Initialize variables
 def get_now():
     "get the current date and time as a string"
@@ -539,13 +539,15 @@ signal.signal(signal.SIGTERM, sigterm_handler)
 
 def setgarageindicator(level):
     if level == "low":
+        #solid red light
         app.LEDBlink(2, 0.25, 0, 0, 0, 100, False)
     elif level == "high":
+        #blinking red light
         app.LEDBlink(2, 0.25, 0.25, 0, 0, 100, False)
     else:
+        #kill red lights and blink green several times on second lamp
         app.KillLED(2)
         app.LEDBlink(7,0.25,0.25,2.35,0,100,False)
-
 try:
 
     fmt = "%Y-%m-%d %H:%M:%S %Z%z"
@@ -570,6 +572,7 @@ try:
         mainlastoff = True
 
     garagemessagesent = False
+    weathermessagesent = False
     garageopentime = None
     stringresponse = ''
 
@@ -612,8 +615,10 @@ try:
                 #The garage just opened
                 setgarageindicator("low")
                 garageopentime = datetime.datetime.now()
-                #print ('Garage opened')
-                print('Garage opened at {:%I:%M:%S} CST'.format(now_central))
+                # Get the temperature
+                ds = darksky.darkskyAPI()
+                temp = ds.getcurrenttemp()
+                print('Garage opened at {:%I:%M:%S %p} CST.'.format(now_central) + ' Current temp: ' + str(temp) + ' degrees F')
 
             else:
                 #determine how long the garage has been open
@@ -621,15 +626,32 @@ try:
                 if not garagemessagesent:
                     if itslate and garageopendelta.total_seconds() > 120:
                         setgarageindicator('high')
-                        sendSMS('It''s {:%I:%M} and the garage is open!'.format(now_central),'18479519366<18476519366')
+                        smsmessage = 'It''s {:%I:%M %p} and the garage is open!'.format(now_central)
+                        sendSMS(smsmessage,'18479519366<18476519366')
+                        print(
+                        'Garage open late warning sent at {:%I:%M:%S %p} CST.'.format(now_central) + ' Current temp: ' + str(
+                            temp) + ' degrees F')
                         garagemessagesent = True
 
+                if not weathermessagesent:
+                    if temp < 55 and garageopendelta.total_seconds() > 300:
+                        setgarageindicator('high')
+                        smsmessage = 'The garage has been open for more than 5 minutes and the outside temp is ' + str(int(temp)) + ' degrees.'
+                        sendSMS(smsmessage, '18479519366<18476519366')
+                        print('Garage weather warning sent at {:%I:%M:%S %p} CST.'.format(now_central) + ' Current temp: ' + str(
+                            temp) + ' degrees F')
+                        weathermessagesent = True
         else:
             if garageopentime is not None:
                 #Garage was just closed
                 garageopentime = None
+                if garagemessagesent or weathermessagesent:
+                    smsmessage = 'The garage is now closed. {:%I:%M %p}'.format(now_central)
+                    sendSMS(smsmessage, '18479519366<18476519366')
                 garagemessagesent = False
+                weathermessagesent = False
                 setgarageindicator('off')
+                print('Garage closed at {:%I:%M:%S %p} CST.'.format(now_central) + ' Current temp: ' + str(temp) + ' degrees F')
 
         # Check in on thread to see if a client has connected
         if portlistenthread1.isclientconnected:
